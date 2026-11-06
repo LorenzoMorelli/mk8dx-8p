@@ -37,10 +37,12 @@ scripts/package.sh                  # dist/mk8dx-8p-{release,diagnostic}-<commit
 EDEN_DIR=… scripts/deploy.sh && EDEN_DIR=… MK8D_GAME=… scripts/run-eden.sh
 ```
 - Build runs in Docker (`devkitpro/devkita64:latest`); `DKP_NATIVE=1` builds directly inside that image (CI). `build.sh` copies the
-  `exlaunch/` submodule to `build/exlaunch/` and overlays `src/program/`, `src/exlaunch_patch/*`, `config.mk`, `config.json` there (the
-  submodule stays clean); output in `build/exlaunch/deploy/`. The build always runs at `/work/exlaunch` (Docker mount; with
-  `DKP_NATIVE=1` `build/exlaunch` is a symlink there) because the path ends up in the binary (`__FILE__`, GNU build-id): local and CI
-  builds of the same commit and flags are byte-identical. Changed flags trigger a clean build (stamp `build/exlaunch/build/.mk8dx-flags`).
+  `exlaunch/` submodule to `build/exlaunch/` and overlays `src/program/`, `config.mk`, `config.json` there, then applies
+  `src/exlaunch_patch/*.patch` (the submodule stays clean; a patch that no longer applies stops the build). Output in
+  `build/exlaunch/deploy/`. The build always runs at `/work/exlaunch` (Docker mount; with `DKP_NATIVE=1` `build/exlaunch` is a symlink
+  there) because the path ends up in the binary (`__FILE__`, GNU build-id). Changed flags trigger a clean build (stamp
+  `build/exlaunch/build/.mk8dx-flags`). Line numbers of patched files also end up in the build-id: keep them when editing a patch if the
+  binary must stay byte-identical.
 - After every Eden start check `$EDEN_DIR/user/log/eden_log.txt`: `LoadDir` points to the expected mod folder, the line
   `patch 7c P1 0xcf040 …`, 34 lines `patch 7d`, `7d: raceMgr … a 20 entry`, `trampolini usati N / 655`, and `Report: Device:` (GPU).
   Missing lines usually mean an old binary is loaded or a hook group was disabled by an unexpected word.
@@ -57,14 +59,14 @@ EDEN_DIR=… scripts/deploy.sh && EDEN_DIR=… MK8D_GAME=… scripts/run-eden.sh
   Eden's settings. Do not put breakpoints on prologues with `str …,[sp,#-N]!`; after a manual interrupt `stepi` before `continue`.
   Restore `use_gdbstub=false` at the end.
 - `Unmapped Device ReadBlock` (GPU side) also happens without the mod in Eden: it is not a mod bug.
-- **Inline hooks run BEFORE the hooked instruction**; the stub (`src/exlaunch_patch/inline_asm.s`) saves NZCV, which makes hooks between
+- **Inline hooks run BEFORE the hooked instruction**; the stub (`src/exlaunch_patch/inline_asm-nzcv.patch`) saves NZCV, which makes hooks between
   `cmp` and `b.cond` safe. Every hook site is verified against its original word before installing. Trampoline pool: 655 entries
   (startup log prints the usage).
 - **Logging** (`src/program/loggers.hpp`) is serialised with a lock (newlib `snprintf` is not thread-safe); release builds compile it out.
 - **Crashes on hardware:** Atmosphère writes `/atmosphere/crash_reports/*.log`. With `MK8DX_EXCDIAG=1` the report registers hold the fault
   context: X03 pc, X04 far, X05 esr, X06 lr, X07 sp (the kernel zeroes x8 and above on `svcBreak`). Module bases are listed in the report;
   offsets in `TurboS.nss` are main offsets.
-- SaltyNX may be loaded in the game process on the maintainer's console; the mod must stay compatible with it (see `src/exlaunch_patch/svc.s`).
+- SaltyNX may be loaded in the game process on the maintainer's console; the mod must stay compatible with it (see `src/exlaunch_patch/svc-saltynx.patch`).
 - **Graphics:** RenderDoc can be loaded by `run-eden.sh` (`RENDERDOC=1`, default). Capture ONE frame with RenderDoc's own F12 key. Never use
   Eden's "Toggle Renderdoc Capture" hotkey (`renderdoc_hotkey`): a start/stop capture on Eden copies ~128 MB per frame and froze the PC.
 - **Reverse engineering:** offsets are into the decompressed main NSO of 4.0.1 (BID `158C0C7399AABD7BF83795C2EF3484C7`); IPS offset =

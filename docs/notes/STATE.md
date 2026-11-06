@@ -149,12 +149,12 @@ Vedi STRUCTS.md. Riferimenti rapidi (4.0.1):
   0x4b317c/0x4b956c/0x4e77d0 a pad singolo. Esteso 0x8b3b3c (scaricamento gruppo pagine): hook 0x8b3c0c azzera anche foc[4..7] (commit 1d54c53).
 - **Risolto il 4 nov (P8)**: lo stub degli hook inline di exlaunch non salvava i flag NZCV; un hook inline fra un `cmp` e il suo `b.cond`
   deviava il salto con i flag del callback C. P8 (slot 7) nella selezione a 8: 0x4bbf24 `cmp w25,#0x34` / 0x4bbf28 hook cfg8 / 0x4bbf30
-  `b.eq` -> sempre ramo Mii, nome e anteprima fermi (mai funzionato). Stub corretto in src/exlaunch_patch/inline_asm.s (mrs/msr nzcv a
+  `b.eq` -> sempre ramo Mii, nome e anteprima fermi (mai funzionato). Stub corretto in src/exlaunch_patch/inline_asm-nzcv.patch (mrs/msr nzcv a
   ctx+0xF8), copiato da scripts/build.sh. Verificato: nome di P8 aggiornato, senza hook di tracciamento. **Resta da fare un censimento
   statico** di tutti gli hook inline: callback che scrivono un registro poi confrontato dall'istruzione agganciata o dalle successive
   (regola G3: l'hook gira PRIMA dell'istruzione), e hook fra `cmp` e `b.cond` (ora sicuri per i flag, ma da elencare).
   **Censimento fatto (6 nov)**: il censimento degli hook inline (non pubblicato: tabella di istruzioni del gioco), 149 siti, nessun caso a rischio; i tre hook fra cmp e b.eq (0x4bbf28, 0x4bbfbc,
-  0x4b9db4) dipendono dallo stub NZCV. Pool trampolini exlaunch 327 -> 655 (JitSize 0x20000) e limite `i >= HookMax` (src/exlaunch_patch/hook_impl.cpp);
+  0x4b9db4) dipendono dallo stub NZCV. Pool trampolini exlaunch 327 -> 655 (JitSize 0x20000) e limite `i >= HookMax` (src/exlaunch_patch/hook_impl-trampolines.patch);
   all'avvio `trampolini usati 288 / 655`.
 - Il main.npdm rigenerato non è firmato: ok per Eden/Atmosphère, non per firmware stock (limite strutturale: la mod gira solo con CFW).
 - **Pacchetti**: `scripts/package.sh` -> dist/mk8dx-8p-{release,diagnostic}-<commit>/ + zip (atmosphere/contents/0100152000022000/exefs/

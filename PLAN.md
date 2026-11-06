@@ -32,11 +32,15 @@ Every hook site is checked against the expected instruction word before installi
 | gifts | `gift8` | unlock animation (Present page) with 8 gift parts |
 | graphics device | `desc6d` | texture descriptors 8492 → 16640 (the dynamic ring was exhausted with 8 views) |
 
-## exlaunch patches (`src/exlaunch_patch/`, copied over the submodule by `scripts/build.sh`)
+## exlaunch patches (`src/exlaunch_patch/*.patch`, applied by `scripts/build.sh` to the copy in `build/exlaunch/`)
 
-- `inline_asm.s`: the inline-hook stub also saves and restores NZCV (hooks placed between `cmp` and `b.cond`).
-- `hook_impl.cpp`: trampoline pool doubled (JIT 0x20000) and off-by-one fixed; `TrampolinesUsed()` for the startup log.
-- `svc.s`: `svcGetInfo` without the instruction pair SaltyNX searches for (otherwise SaltyNX hooked our copy instead of the SDK's).
+The submodule is never modified. If an exlaunch update changes the patched lines, `patch` fails and the build stops.
+
+- `inline_asm-nzcv.patch`: the inline-hook stub also saves and restores NZCV (hooks placed between `cmp` and `b.cond`).
+- `hook_impl-trampolines.patch`: off-by-one in the trampoline pool fixed; `TrampolinesUsed()`/`TrampolinesMax()` for the startup log
+  (the pool size itself is `JitSize` = 0x20000 in `src/program/setting.hpp`).
+- `svc-saltynx.patch`: `svcGetInfo` without the instruction pair SaltyNX searches for (otherwise SaltyNX hooked our copy instead of the
+  SDK's).
 
 ## Diagnostics
 

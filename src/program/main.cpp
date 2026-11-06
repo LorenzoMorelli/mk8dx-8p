@@ -4879,7 +4879,7 @@ HOOK_DEFINE_INLINE(ExcDiagHook) {
             :: "r"(info) : "memory");
     }
 };
-namespace exl::hook::nx64 { int TrampolinesUsed(); int TrampolinesMax(); }   /* src/exlaunch_patch/hook_impl.cpp */
+namespace exl::hook::nx64 { int TrampolinesUsed(); int TrampolinesMax(); }   /* src/exlaunch_patch/hook_impl-trampolines.patch */
 extern "C" void exl_main(void* x0, void* x1) {
     exl::hook::Initialize();
     if (MK8DX_EXCDIAG) {

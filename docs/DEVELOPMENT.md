@@ -2,8 +2,8 @@
 
 - [PLAN.md](../PLAN.md): how the mod works (areas, approach, main hooks). [STRUCTS.md](../STRUCTS.md): reconstructed game structures.
   [notes/](notes/): development state and analysis notes (Italian). [CLAUDE.md](../CLAUDE.md): working rules and debugging tips.
-- Code: `src/program/main.cpp` (all hooks), `src/exlaunch_patch/` (fixes to exlaunch). The build copies the `exlaunch/` submodule to
-  `build/exlaunch/` and overlays these files there; the submodule itself is never modified.
+- Code: `src/program/main.cpp` (all hooks), `src/exlaunch_patch/*.patch` (fixes to exlaunch, see PLAN.md). The build copies the
+  `exlaunch/` submodule to `build/exlaunch/` and applies the patches there; the submodule itself is never modified.
   Offsets are into the decompressed main NSO of 4.0.1 (BID `158C0C7399AABD7BF83795C2EF3484C7`).
 
 Rule of thumb used throughout: find where the original code limits something to 4 and extend that same path to 8, instead of patching the

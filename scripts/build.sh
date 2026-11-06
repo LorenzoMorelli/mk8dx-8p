@@ -3,8 +3,8 @@
 # Uso: scripts/build.sh [clean]          (build distribuibile: log spenti, diagnostica crash accesa)
 #      MK8DX_LOG=1 scripts/build.sh       (build per Eden e build "diagnostica": log accesi)
 #      VAR=valore ... scripts/build.sh     (solo per prove; i default sono quelli della mod "normale")
-# Passi: copia il submodule exlaunch/ (che resta intatto) in build/exlaunch/, ci sovrappone src/program/, src/exlaunch_patch/* (stub degli
-# hook inline con salvataggio NZCV, pool trampolini, svc.s per SaltyNX), config.mk e config.json, poi make nel container Docker $DKP_IMAGE.
+# Passi: copia il submodule exlaunch/ (che resta intatto) in build/exlaunch/, ci sovrappone src/program/, config.mk e config.json, applica
+# le patch src/exlaunch_patch/*.patch (stub NZCV, pool trampolini, svcGetInfo per SaltyNX), poi make nel container Docker $DKP_IMAGE.
 # Uscita: build/exlaunch/deploy/subsdk9 + main.npdm, log completo in build.log. Installazione in Eden: scripts/deploy.sh; avvio: scripts/run-eden.sh.
 #
 # Variabili (facoltative, passate a gcc come -D<nome>=<valore>):
@@ -47,12 +47,12 @@ find "$EXL/" -mindepth 1 -maxdepth 1 ! -name build ! -name deploy -exec rm -rf {
 (cd "$SUB" && find . -mindepth 1 -maxdepth 1 ! -name .git ! -name build ! -name deploy -exec cp -a {} "$EXL/" \;)
 rm -rf "$EXL/source/program"
 cp -a "$HERE/src/program" "$EXL/source/program"
-# stub degli hook inline con salvataggio dei flag NZCV (src/exlaunch_patch/inline_asm.s)
-cp -a "$HERE/src/exlaunch_patch/inline_asm.s" "$EXL/source/lib/hook/nx64/inline_asm.s"
-# pool dei trampolini: limite corretto (i >= HookMax) e contatore TrampolinesUsed() (src/exlaunch_patch/hook_impl.cpp)
-cp -a "$HERE/src/exlaunch_patch/hook_impl.cpp" "$EXL/source/lib/hook/nx64/hook_impl.cpp"
-# svcGetInfo senza la sequenza cercata da SaltyNX (src/exlaunch_patch/svc.s): con SaltyNX attivo agganciava la nostra copia -> crash all'avvio su console
-cp -a "$HERE/src/exlaunch_patch/svc.s" "$EXL/source/lib/nx/kernel/svc.s"
+# correzioni a exlaunch come patch (src/exlaunch_patch/*.patch, scopo nella prima riga di ognuna): se un aggiornamento del submodule
+# cambia le righe toccate, patch fallisce e la build si ferma invece di usare una versione vecchia del file
+for P in "$HERE"/src/exlaunch_patch/*.patch; do
+    patch -d "$EXL" -p1 --forward --batch --silent --no-backup-if-mismatch < "$P" \
+        || { echo "patch non applicabile: ${P#$HERE/} (exlaunch aggiornato? rifare la patch)" >&2; exit 1; }
+done
 cp -a "$HERE/config.mk" "$EXL/config.mk"
 cp -a "$HERE/config.json" "$EXL/config.json"
 VERB=""; [ "$1" = "clean" ] && VERB="clean"

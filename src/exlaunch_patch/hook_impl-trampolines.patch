@@ -1,0 +1,31 @@
+mk8dx-8p: pool dei trampolini, limite corretto (i >= HookMax) e contatore TrampolinesUsed()/TrampolinesMax() per il log.
+--- a/source/lib/hook/nx64/hook_impl.cpp
++++ b/source/lib/hook/nx64/hook_impl.cpp
+@@ -522,13 +522,15 @@
+ 
+     //-------------------------------------------------------------------------
+ 
++    static volatile s32 s_TrampIndex = -1;    /* mk8dx-8p: fuori dalla funzione per TrampolinesUsed() */
++
+     static Result AllocForTrampoline(uint32_t** rx, uint32_t** rw) {
+         static_assert((TrampolineSize * sizeof(uint32_t)) % 8 == 0, "8-byte align");
+-        static volatile s32 index = -1;
++        volatile s32& index = s_TrampIndex;
+ 
+         uint32_t i = __atomic_increase(&index);
+         
+-        if(i > HookMax)
++        if(i >= HookMax)    /* mk8dx-8p: era "i > HookMax" (l'indice HookMax e' fuori dal pool) */
+             return result::HookTrampolineAllocFail;
+ 
+         HookPool* rwptr = (HookPool*)s_HookJit.GetRw();
+@@ -609,4 +611,8 @@
+         return reinterpret_cast<uintptr_t>(rxtrampoline);
+     }
+ 
++    /* mk8dx-8p: trampolini usati / capacita' del pool (misura all'avvio) */
++    int TrampolinesUsed() { return s_TrampIndex + 1; }
++    int TrampolinesMax() { return (int)HookMax; }
++
+ };
+\ No newline at end of file

@@ -1,0 +1,20 @@
+mk8dx-8p: svcGetInfo senza la sequenza che SaltyNX cerca (altrimenti agganciava questa copia invece di quella di nnSdk: crash all'avvio).
+--- a/source/lib/nx/kernel/svc.s
++++ b/source/lib/nx/kernel/svc.s
+@@ -241,10 +241,14 @@
+ 	ret
+ SVC_END
+ 
++/* mk8dx-8p: stesso effetto dell'originale, ma senza la sequenza "str x0,[sp,#-16]! ; svc 0x29" (f81f0fe0 d4000521) che SaltyNX cerca
++   per agganciare la svcGetInfo dell'SDK: il nostro modulo e' in memoria prima di nnSdk e SaltyNX agganciava questa copia (6 nov 2026). */
+ SVC_BEGIN svcGetInfo
+-	str x0, [sp, #-16]!
++	sub sp, sp, #16
++	str x0, [sp]
+ 	svc 0x29
+-	ldr x2, [sp], #16
++	ldr x2, [sp]
++	add sp, sp, #16
+ 	str x1, [x2]
+ 	ret
+ SVC_END

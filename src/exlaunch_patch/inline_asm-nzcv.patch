@@ -1,0 +1,28 @@
+mk8dx-8p: anche i flag NZCV nello stub degli hook inline (hook fra un cmp e il suo b.cond: P8 nella selezione a 8).
+--- a/source/lib/hook/nx64/inline_asm.s
++++ b/source/lib/hook/nx64/inline_asm.s
+@@ -1,3 +1,4 @@
++/* exlaunch inline_asm.s (GPL-2) con il salvataggio dei flag NZCV: patch mk8dx-8p (src/exlaunch_patch/inline_asm-nzcv.patch) */
+ .macro CODE_BEGIN name
+ 	.section .text.\name, "ax", %progbits
+ 	.global \name
+@@ -33,6 +34,10 @@
+     stp x24, x25, [sp, #0xC0]
+     stp x26, x27, [sp, #0xD0]
+     stp x28, x29, [sp, #0xE0]
++    /* mk8dx-8p: anche i flag NZCV (0xF0 = LR dell'entrypoint, 0xF8 libero). Senza, un hook inline fra un cmp e il suo b.cond
++       devia il salto con i flag lasciati dal callback (P8 nella selezione a 8: 0x4bbf24 cmp / 0x4bbf28 hook cfg8 / 0x4bbf30 b.eq) */
++    mrs x0, nzcv
++    str x0, [sp, #0xF8]
+ .endm
+ 
+ .macro armBackupFloatRegisters
+@@ -56,6 +61,8 @@
+ .endm
+ 
+ .macro armRecoverRegisters
++    ldr x0, [sp, #0xF8]
++    msr nzcv, x0
+     ldp x0, x1, [sp, #0x00]
+     ldp x2, x3, [sp, #0x10]
+     ldp x4, x5, [sp, #0x20]
