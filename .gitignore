@@ -1,10 +1,5 @@
-# build outputs (exlaunch submodule is overlaid at build time)
-exlaunch/build/
-exlaunch/deploy/
-exlaunch/*.elf
-exlaunch/*.nso
-exlaunch/*.npdm
-exlaunch/*.map
+# build tree (copy of the exlaunch submodule + our sources) and outputs
+build/
 *.log
 dist/
 

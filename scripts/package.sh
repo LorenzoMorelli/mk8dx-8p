@@ -17,7 +17,7 @@ pack() {   # $1 = variante, $2 = MK8DX_LOG
         MK8DX_LOG="$2" MK8DX_EXCDIAG=1 "$HERE/scripts/build.sh" >/dev/null
     local OUT="$HERE/dist/mk8dx-8p-$1-$REV"
     rm -rf "$OUT" "$OUT.zip"; mkdir -p "$OUT/atmosphere/contents/0100152000022000/exefs"
-    cp "$HERE/exlaunch/deploy/subsdk9" "$HERE/exlaunch/deploy/main.npdm" "$OUT/atmosphere/contents/0100152000022000/exefs/"
+    cp "$HERE/build/exlaunch/deploy/subsdk9" "$HERE/build/exlaunch/deploy/main.npdm" "$OUT/atmosphere/contents/0100152000022000/exefs/"
     { cat "$HERE/docs/INSTALL.md"; echo; echo "Build: $1, commit $REV, $(date -u +%Y-%m-%dT%H:%MZ) (MK8DX_LOG=$2, MK8DX_EXCDIAG=1)."; } > "$OUT/README.md"
     (cd "$OUT" && sha256sum atmosphere/contents/0100152000022000/exefs/* > SHA256SUMS)
     if command -v python3 >/dev/null; then (cd "$OUT" && python3 -I -m zipfile -c "$OUT.zip" atmosphere README.md SHA256SUMS); fi

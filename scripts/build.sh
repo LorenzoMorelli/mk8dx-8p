@@ -3,9 +3,9 @@
 # Uso: scripts/build.sh [clean]          (build distribuibile: log spenti, diagnostica crash accesa)
 #      MK8DX_LOG=1 scripts/build.sh       (build per Eden e build "diagnostica": log accesi)
 #      VAR=valore ... scripts/build.sh     (solo per prove; i default sono quelli della mod "normale")
-# Passi: copia src/program/, src/exlaunch_patch/inline_asm.s (stub degli hook inline con salvataggio NZCV) e hook_impl.cpp (pool trampolini), config.mk e
-# config.json dentro exlaunch/, poi make nel container Docker $DKP_IMAGE. Uscita: exlaunch/deploy/subsdk9 + main.npdm,
-# log completo in build.log. Installazione in Eden: scripts/deploy.sh; avvio: scripts/run-eden.sh.
+# Passi: copia il submodule exlaunch/ (che resta intatto) in build/exlaunch/, ci sovrappone src/program/, src/exlaunch_patch/* (stub degli
+# hook inline con salvataggio NZCV, pool trampolini, svc.s per SaltyNX), config.mk e config.json, poi make nel container Docker $DKP_IMAGE.
+# Uscita: build/exlaunch/deploy/subsdk9 + main.npdm, log completo in build.log. Installazione in Eden: scripts/deploy.sh; avvio: scripts/run-eden.sh.
 #
 # Variabili (facoltative, passate a gcc come -D<nome>=<valore>):
 #   MK8DX_VIEWS        8      viste massime in gara (6 o 8)
@@ -27,19 +27,34 @@
 #   DKP_NATIVE         0      1 = compila direttamente (gia' dentro devkitA64, es. CI), senza Docker
 set -e
 HERE="$(cd "$(dirname "$0")/.." && pwd)"
-EXL="$HERE/exlaunch"
+SUB="$HERE/exlaunch"
+# cartella di build: deve chiamarsi "exlaunch" (il Makefile prende il nome del target dalla cartella)
+EXL="$HERE/build/exlaunch"
 IMAGE="${DKP_IMAGE:-devkitpro/devkita64:latest}"
-# overlay: our program sources and configuration go into the exlaunch tree
+[ -f "$SUB/Makefile" ] || { echo "submodule exlaunch mancante: git submodule update --init" >&2; exit 1; }
+# Il percorso assoluto della build finisce nel binario (__FILE__ dei messaggi di abort, info di debug -> GNU build-id): si compila sempre in
+# /work/exlaunch. Docker: build/exlaunch montata li'. DKP_NATIVE=1 (CI, container come root): build/exlaunch e' un link a /work/exlaunch.
+# Stesso commit e stessi flag -> stesso subsdk9 in locale e in CI.
+if [ "${DKP_NATIVE:-0}" = "1" ]; then
+    mkdir -p /work/exlaunch "$HERE/build"
+    [ -L "$EXL" ] || rm -rf "$EXL"
+    ln -sfn /work/exlaunch "$EXL"
+fi
+# albero di build = exlaunch originale + i nostri file. cp -a mantiene le date (build incrementale di make); i sorgenti vengono
+# ricopiati da zero a ogni build, cosi' un file tolto da src/ non resta nella build. build/exlaunch/build (oggetti) resta.
+mkdir -p "$EXL"
+find "$EXL/" -mindepth 1 -maxdepth 1 ! -name build ! -name deploy -exec rm -rf {} +
+(cd "$SUB" && find . -mindepth 1 -maxdepth 1 ! -name .git ! -name build ! -name deploy -exec cp -a {} "$EXL/" \;)
 rm -rf "$EXL/source/program"
-cp -r "$HERE/src/program" "$EXL/source/program"
-# stub degli hook inline con salvataggio dei flag NZCV (src/exlaunch_patch/inline_asm.s); l'originale si ripristina con git -C exlaunch checkout
-cp "$HERE/src/exlaunch_patch/inline_asm.s" "$EXL/source/lib/hook/nx64/inline_asm.s"
+cp -a "$HERE/src/program" "$EXL/source/program"
+# stub degli hook inline con salvataggio dei flag NZCV (src/exlaunch_patch/inline_asm.s)
+cp -a "$HERE/src/exlaunch_patch/inline_asm.s" "$EXL/source/lib/hook/nx64/inline_asm.s"
 # pool dei trampolini: limite corretto (i >= HookMax) e contatore TrampolinesUsed() (src/exlaunch_patch/hook_impl.cpp)
-cp "$HERE/src/exlaunch_patch/hook_impl.cpp" "$EXL/source/lib/hook/nx64/hook_impl.cpp"
+cp -a "$HERE/src/exlaunch_patch/hook_impl.cpp" "$EXL/source/lib/hook/nx64/hook_impl.cpp"
 # svcGetInfo senza la sequenza cercata da SaltyNX (src/exlaunch_patch/svc.s): con SaltyNX attivo agganciava la nostra copia -> crash all'avvio su console
-cp "$HERE/src/exlaunch_patch/svc.s" "$EXL/source/lib/nx/kernel/svc.s"
-cp "$HERE/config.mk" "$EXL/config.mk"
-cp "$HERE/config.json" "$EXL/config.json"
+cp -a "$HERE/src/exlaunch_patch/svc.s" "$EXL/source/lib/nx/kernel/svc.s"
+cp -a "$HERE/config.mk" "$EXL/config.mk"
+cp -a "$HERE/config.json" "$EXL/config.json"
 VERB=""; [ "$1" = "clean" ] && VERB="clean"
 VIEWS="${MK8DX_VIEWS:-8}"
 LYT8="${MK8DX_LYT8:-0}"
@@ -51,6 +66,9 @@ FLAGS="-DMK8DX_VIEWS=$VIEWS -DMK8DX_LYT8=$LYT8 -DMK8DX_P3TEST=$P3TEST -DMK8DX_P7
 -DMK8DX_P7_REC16=$REC16 -DMK8DX_P7_FLOW8=${MK8DX_P7_FLOW8:-1} -DMK8DX_SEL8B=${MK8DX_SEL8B:-1} -DMK8DX_TEXDESC=${MK8DX_TEXDESC:-16640} \
 -DMK8DX_SPECTOFF=${MK8DX_SPECTOFF:-0} -DMK8DX_NO7CFIX=${MK8DX_NO7CFIX:-0} -DMK8DX_GIFT8=${MK8DX_GIFT8:-1} -DMK8DX_EXCDIAG=${MK8DX_EXCDIAG:-1} \
 -DMK8DX_MODELDIAG=${MK8DX_MODELDIAG:-0} -DMK8DX_LOG=${MK8DX_LOG:-0}"
+# flag diversi dall'ultima build -> build da zero (make non vede il cambio dei -D: es. hook_impl.cpp dipende da MK8DX_LOG)
+STAMP="$EXL/build/.mk8dx-flags"
+[ -f "$STAMP" ] && [ "$(cat "$STAMP")" = "$FLAGS" ] || VERB="clean"
 CMD='export DEVKITPRO=${DEVKITPRO:-/opt/devkitpro} DEVKITA64=${DEVKITA64:-/opt/devkitpro/devkitA64}
     export PATH=$DEVKITPRO/tools/bin:$DEVKITA64/bin:$PATH
     if [ -n "$VERB" ]; then make clean; fi
@@ -62,10 +80,11 @@ set +e
 if [ "${DKP_NATIVE:-0}" = "1" ]; then
     (cd "$EXL" && VERB="$VERB" FLAGS="$FLAGS" bash -c "$CMD") > "$HERE/build.log" 2>&1
 else
-    docker run --rm -u "$(id -u):$(id -g)" -e VERB="$VERB" -e FLAGS="$FLAGS" -v "$HERE:/work" -w /work/exlaunch "$IMAGE" bash -c "$CMD" > "$HERE/build.log" 2>&1
+    docker run --rm -u "$(id -u):$(id -g)" -e VERB="$VERB" -e FLAGS="$FLAGS" -v "$EXL:/work/exlaunch" -w /work/exlaunch "$IMAGE" bash -c "$CMD" > "$HERE/build.log" 2>&1
 fi
 RC=$?
 set -e
 grep -E "error:|warning:|built" "$HERE/build.log" || true
 if [ $RC -ne 0 ] || [ ! -f "$EXL/deploy/subsdk9" ]; then echo "build FALLITA (rc=$RC): vedi build.log" >&2; tail -20 "$HERE/build.log" >&2; exit 1; fi
+mkdir -p "$EXL/build" && printf '%s' "$FLAGS" > "$STAMP"
 ls -la "$EXL/deploy/"

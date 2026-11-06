@@ -9,7 +9,7 @@ MOD="$EDEN/user/load/0100152000022000/mk8dx-8p/exefs"
 if [ "$1" = "remove" ]; then
     rm -rf "$EDEN/user/load/0100152000022000/mk8dx-8p"; echo "mod rimossa"; exit 0
 fi
-test -f "$HERE/exlaunch/deploy/subsdk9" -a -f "$HERE/exlaunch/deploy/main.npdm"
+test -f "$HERE/build/exlaunch/deploy/subsdk9" -a -f "$HERE/build/exlaunch/deploy/main.npdm"
 mkdir -p "$MOD"
-cp "$HERE/exlaunch/deploy/subsdk9" "$HERE/exlaunch/deploy/main.npdm" "$MOD/"
+cp "$HERE/build/exlaunch/deploy/subsdk9" "$HERE/build/exlaunch/deploy/main.npdm" "$MOD/"
 ls -la "$MOD"

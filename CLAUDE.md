@@ -36,8 +36,11 @@ MK8DX_LOG=1 scripts/build.sh        # emulator/diagnostic build: REQUIRED for Ed
 scripts/package.sh                  # dist/mk8dx-8p-{release,diagnostic}-<commit>/
 EDEN_DIR=… scripts/deploy.sh && EDEN_DIR=… MK8D_GAME=… scripts/run-eden.sh
 ```
-- Build runs in Docker (`devkitpro/devkita64:latest`); `DKP_NATIVE=1` builds directly inside that image (CI). `build.sh` copies
-  `src/program/` and `src/exlaunch_patch/*` over the `exlaunch/` submodule, so the submodule shows as modified: that is expected.
+- Build runs in Docker (`devkitpro/devkita64:latest`); `DKP_NATIVE=1` builds directly inside that image (CI). `build.sh` copies the
+  `exlaunch/` submodule to `build/exlaunch/` and overlays `src/program/`, `src/exlaunch_patch/*`, `config.mk`, `config.json` there (the
+  submodule stays clean); output in `build/exlaunch/deploy/`. The build always runs at `/work/exlaunch` (Docker mount; with
+  `DKP_NATIVE=1` `build/exlaunch` is a symlink there) because the path ends up in the binary (`__FILE__`, GNU build-id): local and CI
+  builds of the same commit and flags are byte-identical. Changed flags trigger a clean build (stamp `build/exlaunch/build/.mk8dx-flags`).
 - After every Eden start check `$EDEN_DIR/user/log/eden_log.txt`: `LoadDir` points to the expected mod folder, the line
   `patch 7c P1 0xcf040 …`, 34 lines `patch 7d`, `7d: raceMgr … a 20 entry`, `trampolini usati N / 655`, and `Report: Device:` (GPU).
   Missing lines usually mean an old binary is loaded or a hook group was disabled by an unexpected word.
