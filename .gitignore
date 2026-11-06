@@ -15,3 +15,5 @@ tools/debug/run/
 
 # per-machine settings
 CLAUDE.local.md
+__pycache__/
+*.pyc
