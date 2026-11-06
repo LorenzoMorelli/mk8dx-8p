@@ -293,6 +293,15 @@ Premio completo: rimandati al PC veloce con la regressione 1P/4P. L'helper "gara
 **Stato (6 nov 2026 sera): pubblicata la release v0.1.0** (tag sul commit cfd47bb, zip `mk8dx-8p-release-cfd47bb.zip` allegato dalla CI).
 README riscritto (screenshot 2×2, installazione su Switch e su Eden, link "latest release"), sviluppo spostato in docs/DEVELOPMENT.md,
 istruzioni Eden anche in docs/INSTALL.md (README dello zip). Fase attuale: **attesa delle issue dei tester** e prove dell'utente.
+Nessuna v0.1.1 per ora (decisione dell'utente): le modifiche successive riguardano solo la build, non il comportamento della mod.
+**Build riorganizzata (6 nov sera, commit e590db2, 4c7fc38, 2fe8522)** [VERIFICATO]:
+- il submodule `exlaunch/` resta intatto: `build.sh` lo copia in `build/exlaunch/` (git-ignored), ci mette src/program, config.mk/json e
+  applica `src/exlaunch_patch/*.patch` (NZCV, trampolini, SaltyNX, liste sorgenti ordinate); una patch non applicabile ferma la build;
+- si compila sempre in `/work/exlaunch` (mount Docker; in CI link simbolico) perche' il percorso entra nel binario (`__FILE__`, build-id);
+  flag cambiati -> build da zero (prima `hook_impl.cpp` non veniva ricompilato passando da release a log);
+- `common.mk` ordinava i sorgenti con un `find` non ordinato: l'ordine di link dipendeva dal filesystem e la CI (anche lo zip di v0.1.0,
+  subsdk9 915431b8...) dava un layout diverso dal locale. Ora locale, tmpfs e CI danno lo stesso binario: commit 2fe8522 release subsdk9
+  `5fa56085...`, log `f223c2a9...` (zip della CI controllato). Build con log provata in Eden dall'utente (gara a 8 con risultati, 1-4P).
 **`scripts/build.sh` senza variabili produce la build release (log spenti). Per Eden usare `MK8DX_LOG=1 scripts/build.sh`**, altrimenti
 mancano le righe `[mk8dx-8p]` usate nei controlli (patch 7c/7d, trampolini...).
 Prova su Switch reale (6 nov 2026): crash all'avvio risolto (ModelCreateHook chiamava 0x68fa38 su modelli con shape non ancora collegate),
@@ -303,7 +312,8 @@ verificato in Eden. Difetto grafico intermittente rivisto in 8P (viola, step8_da
 descrittori sano (0 falliti, col debugger), sparisce alla gara successiva.
 Prossimi passi, da concordare con l'utente:
 1. Issue dei tester: smistarle; per i crash su console servono il `.log` di `/atmosphere/crash_reports/` (X03..X07) e il numero di giocatori.
-2. Regressione in Eden della build release (MK8DX_LOG=0) col sanitizer: verificato solo l'avvio (e' la build che scaricano tutti).
+2. Regressione in Eden della build release (MK8DX_LOG=0) col sanitizer: verificato solo l'avvio (e' la build che scaricano tutti; la
+   build con log del commit 2fe8522 e' stata provata il 6 nov sera).
 3. Prove su console a 7-8 giocatori e in modalita' portatile.
 4. Verde/viola intermittente (Problemi aperti): se ricompare, cattura con F12 di RenderDoc.
 5. Facoltativo: modello per le issue (`.github/ISSUE_TEMPLATE/`).
