@@ -9,7 +9,7 @@ Offset = main decompresso (../img/main.bin); IPS = offset + 0x100. Analisi di pa
 
 ## Ambiente portabile
 `switch_env/` (non in git): gioco .xci, update 4.0.1 .nsp, Eden portabile con `user/` (chiavi, config a 8 controller, nand con
-firmware e update, mod installata). Dettagli e requisiti nel README; gli script usano `switch_env/eden` se presente.
+firmware e update, mod installata). Dettagli e requisiti in docs/DEVELOPMENT.md; gli script usano `switch_env/eden` se presente.
 La cartella madre `../` (`tools/`, `img/main.bin`, `img/main.ann.asm`, report dell'analisi 2025-26) serve per l'analisi statica.
 PC attuale (3 nov 2026, i7-13700H + Arc A370M, Arch): l'`eden.AppImage` originale crasha con SIGILL (build AVX-512,
 `vmovups zmm0`), rimosso; `switch_env/eden/eden.AppImage` = Eden v0.2.1 stable (da `~/Projects/eden-patched/stable/`).
