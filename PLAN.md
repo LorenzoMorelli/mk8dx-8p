@@ -39,6 +39,8 @@ The submodule is never modified. If an exlaunch update changes the patched lines
 - `inline_asm-nzcv.patch`: the inline-hook stub also saves and restores NZCV (hooks placed between `cmp` and `b.cond`).
 - `hook_impl-trampolines.patch`: off-by-one in the trampoline pool fixed; `TrampolinesUsed()`/`TrampolinesMax()` for the startup log
   (the pool size itself is `JitSize` = 0x20000 in `src/program/setting.hpp`).
+- `common-sorted-sources.patch`: module and source directory lists sorted, so the link order (and the binary) does not depend on the
+  filesystem: local and CI builds are byte-identical.
 - `svc-saltynx.patch`: `svcGetInfo` without the instruction pair SaltyNX searches for (otherwise SaltyNX hooked our copy instead of the
   SDK's).
 

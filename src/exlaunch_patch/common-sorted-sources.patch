@@ -1,0 +1,14 @@
+mk8dx-8p: liste di moduli e cartelle sorgente ordinate (find le da' nell'ordine del filesystem): stesso binario su ogni macchina e in CI.
+--- a/misc/mk/common.mk
++++ b/misc/mk/common.mk
+@@ -24,8 +24,8 @@
+ export TARGET		:=	$(notdir $(CURDIR))
+ BUILD		:=	build
+ ROOT_SOURCE	:=	$(TOPDIR)/source
+-MODULES		:=	$(shell find $(ROOT_SOURCE) -mindepth 1 -maxdepth 1 -type d)
+-SOURCES		:=	$(foreach module,$(MODULES),$(shell find $(module) -type d))
++MODULES		:=	$(sort $(shell find $(ROOT_SOURCE) -mindepth 1 -maxdepth 1 -type d))
++SOURCES		:=	$(foreach module,$(MODULES),$(sort $(shell find $(module) -type d)))
+ SOURCES		:= 	$(foreach source,$(SOURCES),$(source:$(TOPDIR)/%=%)/)
+ 
+ DATA		:=	data

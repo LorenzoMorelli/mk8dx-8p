@@ -40,7 +40,9 @@ EDEN_DIR=… scripts/deploy.sh && EDEN_DIR=… MK8D_GAME=… scripts/run-eden.sh
   `exlaunch/` submodule to `build/exlaunch/` and overlays `src/program/`, `config.mk`, `config.json` there, then applies
   `src/exlaunch_patch/*.patch` (the submodule stays clean; a patch that no longer applies stops the build). Output in
   `build/exlaunch/deploy/`. The build always runs at `/work/exlaunch` (Docker mount; with `DKP_NATIVE=1` `build/exlaunch` is a symlink
-  there) because the path ends up in the binary (`__FILE__`, GNU build-id). Changed flags trigger a clean build (stamp
+  there) because the path ends up in the binary (`__FILE__`, GNU build-id), and source lists are sorted
+  (`common-sorted-sources.patch`, otherwise the link order follows the filesystem): local and CI builds of the same commit and flags are
+  byte-identical. Changed flags trigger a clean build (stamp
   `build/exlaunch/build/.mk8dx-flags`). Line numbers of patched files also end up in the build-id: keep them when editing a patch if the
   binary must stay byte-identical.
 - After every Eden start check `$EDEN_DIR/user/log/eden_log.txt`: `LoadDir` points to the expected mod folder, the line
