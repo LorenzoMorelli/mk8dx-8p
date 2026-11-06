@@ -8,12 +8,12 @@ Target: title 0100152000022000, update v1507328 (4.0.1), main BID 158C0C7399AABD
 Offset = main decompresso (../img/main.bin); IPS = offset + 0x100. Analisi di partenza in ../report/.
 
 ## Ambiente portabile
-`switch_env/` (non in git): gioco .xci, update 4.0.1 .nsp, Eden portabile con `user/` (chiavi, config a 8 controller, nand con
-firmware e update, mod installata). Dettagli e requisiti in docs/DEVELOPMENT.md; gli script usano `switch_env/eden` se presente.
-La cartella madre `../` (`tools/`, `img/main.bin`, `img/main.ann.asm`, report dell'analisi 2025-26) serve per l'analisi statica.
-PC attuale (3 nov 2026, i7-13700H + Arc A370M, Arch): l'`eden.AppImage` originale crasha con SIGILL (build AVX-512,
-`vmovups zmm0`), rimosso; `switch_env/eden/eden.AppImage` = Eden v0.2.1 stable (da `~/Projects/eden-patched/stable/`).
-Avviare Eden fuori dalla sandbox. Prestazioni su questo PC: vedi "Problemi aperti".
+Eden portabile (non in git) con `user/` (chiavi, config a 8 controller, nand con firmware e update 4.0.1): gli script vogliono
+`EDEN_DIR` (cartella con `eden.AppImage` e `user/`) e `MK8D_GAME` (default: primo `Mario Kart 8 Deluxe*.xci` in `$EDEN_DIR/../games`).
+Percorsi e impostazioni della singola macchina in `CLAUDE.local.md` (git-ignored); comandi in docs/DEVELOPMENT.md.
+`main.bin` e `main.ann.asm` per l'analisi statica si rigenerano con `tools/re/disasm.sh`, fuori dal repo.
+Storico (3 nov 2026, PC i7-13700H + Arc A370M): un `eden.AppImage` con build AVX-512 crashava con SIGILL; usata Eden v0.2.1 stable.
+Avviare Eden fuori dalla sandbox. Prestazioni: vedi "Problemi aperti".
 
 ## Step completati
 - Step 6b (3 nov 2026) – gara a 8 completa a video: ordine GPU dei layer, HUD 5-8, intro/Lakitu 5-8, partizioni 8P:
@@ -140,8 +140,9 @@ Vedi STRUCTS.md. Riferimenti rapidi (4.0.1):
 - **Dominante verde intermittente (aperto)**: vista UNA volta (5 nov 22:08, 1P, GP Coppa Fungo gara 3 = 4a della sessione, build normale, shader
   asincroni spenti) subito dopo la lettura GPU; verde su geometria illuminata, cielo e HUD opaco normali -> illuminazione/nebbia della pista
   con dati errati [I]. Non riprodotta in 5 sessioni successive (mod normale, TEXDESC=0, senza mod, 6 gare 1P + una gara a 8). Stessi errori di Eden
-  in tutte le sessioni; anello descrittori della mod identico (0 fallimenti). Strumenti pronti: RenderDoc 1.46 (Eden avviato con
-  `ENABLE_VULKAN_RENDERDOC_CAPTURE=1 scripts/run-eden.sh`, `renderdoc_hotkey=true`, cattura **Ctrl+F12** due volte, file in /tmp/RenderDoc) + sanitizer.
+  in tutte le sessioni; anello descrittori della mod identico (0 fallimenti). Strumenti pronti: RenderDoc (caricato da
+  `scripts/run-eden.sh`, `RENDERDOC=1` di default; catturare UN fotogramma col tasto **F12 di RenderDoc**, mai il tasto `renderdoc_hotkey` di Eden,
+  che ha bloccato il PC) + sanitizer.
   Se ricompare: catturare, screenshot, NON uscire dalla gara. NB: `Service.NVDRV:Debug` riempie il log (limite 100 MB) in ~25 min.
 - **Cicli srotolati a 4 pad nel menu: chiuso (6 nov)**. Censimento dei chiamanti di 0x8bd5f8 e delle scritture del bit p di +0x190: Dialog,
   Present, attivazione pagina gia' estesi; GhostScrollList 0x491a9c (solo 1P) e TitleSelect 0x4da82c (prima della scelta di N) senza effetto a 8;
@@ -156,9 +157,9 @@ Vedi STRUCTS.md. Riferimenti rapidi (4.0.1):
   0x4b9db4) dipendono dallo stub NZCV. Pool trampolini exlaunch 327 -> 655 (JitSize 0x20000) e limite `i >= HookMax` (src/exlaunch_patch/hook_impl.cpp);
   all'avvio `trampolini usati 288 / 655`.
 - Il main.npdm rigenerato non è firmato: ok per Eden/Atmosphère, non per firmware stock (limite strutturale: la mod gira solo con CFW).
-- **Pacchetto per Switch reale (6 nov)**: `scripts/package.sh` -> dist/mk8dx-8p-<commit>.zip (atmosphere/contents/0100152000022000/exefs/
-  subsdk9 + main.npdm, LEGGIMI.md = docs/INSTALLA_SWITCH.md con 11 prove minime, SHA256SUMS). Nessuna cartella romfs: i layout 8pl sono gia' nella
-  RomFS 4.0.1. Eden provato solo in dock e con layout di memoria 4 GB (come la Switch 1). **Prova su console non ancora fatta.**
+- **Pacchetti**: `scripts/package.sh` -> dist/mk8dx-8p-{release,diagnostic}-<commit>/ + zip (atmosphere/contents/0100152000022000/exefs/
+  subsdk9 + main.npdm, README.md = docs/INSTALL.md, SHA256SUMS). Nessuna cartella romfs: i layout 8pl sono gia' nella RomFS 4.0.1.
+  Console: avvio, gare e GP a 5 e 6 ok (dock). **Non ancora provati su console: 7-8 giocatori e modalita' portatile.**
 - **Regressione 1-4P: fatta (6 nov, col sanitizer)**: gara 1P completa con risultati, 2P e 3P brevi, 4P con pausa/ripresa: 0 arresti, nessun
   errore di Eden (step8_data (dati non pubblicati)/eden_log_regressione_1234p_20261106.txt). GP a 4 completo verificato il 5 nov.
 - [RISOLTO 4 nov] Logo di arrivo (FinishLogo) nelle celle 5-8: presente (sessione del 4 nov sera).
@@ -289,21 +290,23 @@ con una gara completa; restano C1 colori righe P5-P8 (palette a 8, step 5b), C2 
 Premio completo: rimandati al PC veloce con la regressione 1P/4P. L'helper "gara a 1 giro" (D1/D2) è stato provato e rimosso su richiesta dell'utente.
 
 ## Prossima azione
-**ATTENZIONE (6 nov 2026): `scripts/build.sh` senza variabili produce ora la build DISTRIBUIBILE (log spenti). Per Eden usare
-`MK8DX_LOG=1 scripts/build.sh`**, altrimenti mancano tutte le righe `[mk8dx-8p]` usate nei controlli (patch 7c/7d, trampolini...).
-Prova su Switch reale (6 nov 2026, report in step8_data (dati non pubblicati)/console/LEGGIMI.md): crash all'avvio risolto (ModelCreateHook chiamava 0x68fa38
-su modelli con shape non ancora collegate), compatibilita' SaltyNX corretta (svcGetInfo), diagnostica crash nei report di Atmosphère
-(hook nnSdk+0x90f38: X03 pc, X04 far, X05 esr, X06 lr, X07 sp; il kernel azzera x8+ nei break). Avvio e gare ok sulla console;
-l'utente ha 6 Joy-Con: GP a 6 e 5 in corso, 7-8P sulla console in futuro con amici. Pacchetti: `scripts/package.sh` ->
-dist/mk8dx-8p-distribuibile-<commit> (MK8DX_LOG=0) e dist/mk8dx-8p-diagnostica-<commit> (MK8DX_LOG=1), entrambi con MK8DX_EXCDIAG=1.
+**Stato (6 nov 2026 sera): pubblicata la release v0.1.0** (tag sul commit cfd47bb, zip `mk8dx-8p-release-cfd47bb.zip` allegato dalla CI).
+README riscritto (screenshot 2×2, installazione su Switch e su Eden, link "latest release"), sviluppo spostato in docs/DEVELOPMENT.md,
+istruzioni Eden anche in docs/INSTALL.md (README dello zip). Fase attuale: **attesa delle issue dei tester** e prove dell'utente.
+**`scripts/build.sh` senza variabili produce la build release (log spenti). Per Eden usare `MK8DX_LOG=1 scripts/build.sh`**, altrimenti
+mancano le righe `[mk8dx-8p]` usate nei controlli (patch 7c/7d, trampolini...).
+Prova su Switch reale (6 nov 2026): crash all'avvio risolto (ModelCreateHook chiamava 0x68fa38 su modelli con shape non ancora collegate),
+compatibilita' SaltyNX corretta (svcGetInfo), diagnostica crash nei report di Atmosphère (hook nnSdk+0x90f38: X03 pc, X04 far, X05 esr,
+X06 lr, X07 sp; il kernel azzera x8+ nei break). Console: avvio, gare, GP a 5 e 6 ok; l'utente ha 6 Joy-Con, 7-8P in futuro con amici.
 Finestra varianti P5-P8 (6 nov): il riquadro restava dopo la scelta del costume -> CwDecideHook 0x8affa4 (step8_varianti_chiusura.md),
-verificato in Eden. Console: GP a 5 e 6 ok. Difetto grafico intermittente rivisto in 8P (viola, step8_data (dati non pubblicati)/viola_8p_*.png): anello
-descrittori sano (0 falliti, col debugger), sparisce alla gara successiva. Cattura: F12 di RenderDoc (un fotogramma); il tasto avvia/ferma
-di Eden (renderdoc_hotkey) ha bloccato il PC.
+verificato in Eden. Difetto grafico intermittente rivisto in 8P (viola, step8_data (dati non pubblicati)/viola_8p_*.png): anello
+descrittori sano (0 falliti, col debugger), sparisce alla gara successiva.
 Prossimi passi, da concordare con l'utente:
-1. GP a 5 e 6 sulla console fatti; poi prove a 7-8 con amici (build diagnostica), poi uso della distribuibile.
-2. Regressione in Eden della build distribuibile (MK8DX_LOG=0) col sanitizer: verificato solo l'avvio.
-3. Verde intermittente (Problemi aperti): RenderDoc pronto (`ENABLE_VULKAN_RENDERDOC_CAPTURE=1`, `renderdoc_hotkey=true`, Ctrl+F12).
+1. Issue dei tester: smistarle; per i crash su console servono il `.log` di `/atmosphere/crash_reports/` (X03..X07) e il numero di giocatori.
+2. Regressione in Eden della build release (MK8DX_LOG=0) col sanitizer: verificato solo l'avvio (e' la build che scaricano tutti).
+3. Prove su console a 7-8 giocatori e in modalita' portatile.
+4. Verde/viola intermittente (Problemi aperti): se ricompare, cattura con F12 di RenderDoc.
+5. Facoltativo: modello per le issue (`.github/ISSUE_TEMPLATE/`).
 **Test "sanitizer"** consigliato dopo ogni modifica di rilievo: Eden con `use_gdbstub=true` + `tools/debug/start.sh` +
 `tools/debug/recloop.sh` (con lo stub Eden si ferma a ogni lettura non mappata; recloop registra pc/lr/registri/bt in rec.log e
 riprende). Lo stub accetta UNA sola connessione: se gdb muore, Eden va riavviato. Mai `pkill -f`/`pgrep -f` con nomi di script (anche nei
@@ -391,6 +394,7 @@ per bisezioni; le misure delle monete COINTEST sono state rimosse il 4 nov).
 
 ## 6 nov 2026 pomeriggio: repo pubblico
 `mk8dx-8p/` e' diventato il repo PUBBLICO (https://github.com/LorenzoMorelli/mk8dx-8p.git, ramo `main`, storia nuova dal commit 8242fcb,
-inglese, GPL-2.0, CI `.github/workflows/build.yml` con build release in devkitpro/devkita64 e `DKP_NATIVE=1`). La storia precedente e' nel
-ramo locale `archivio-privato` (mai da pubblicare; push limitato a main con `remote.origin.push`). Queste note (STATE, prompt, report,
-memoria, log) vivono qui in `` (repo locale privato). Pacchetti: `scripts/package.sh` -> dist/mk8dx-8p-{release,diagnostic}-<commit>.
+inglese, GPL-2.0, CI `.github/workflows/build.yml` con build release in devkitpro/devkita64 e `DKP_NATIVE=1`). La storia precedente e' in un
+ramo locale `archivio-privato` (mai da pubblicare; si pusha solo `main`). Remote `origin` via SSH (git@github.com:LorenzoMorelli/mk8dx-8p.git).
+Queste note sono pubbliche; log, dati di gioco e disassemblato restano fuori dal repo. Pacchetti: `scripts/package.sh` ->
+dist/mk8dx-8p-{release,diagnostic}-<commit>.
