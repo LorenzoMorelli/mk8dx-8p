@@ -12,3 +12,6 @@ dist/
 prompt.md
 tools/debug/run/
 *.rdc
+
+# per-machine settings
+CLAUDE.local.md

@@ -66,11 +66,9 @@ CI (`.github/workflows/build.yml`) builds the release package on every push (`DK
 `MK8DX_LOG=1` builds and read `$EDEN_DIR/user/log/eden_log.txt`. Eden's GDB stub (port 6543) is useful to catch unmapped reads, which
 return 0 in Eden but crash on hardware (`tools/debug/`: persistent gdb session and a loop that logs every stop).
 
-**Reverse engineering:** decompress the main NSO from the 4.0.1 update (e.g. with `hactool` and an NSO decompressor), then
-```sh
-llvm-objcopy -I binary -O elf64-littleaarch64 --rename-section=.data=.text,code main.bin main.elf
-llvm-objdump -d --triple=aarch64 main.elf > main.asm
-```
+**Reverse engineering:** extract the main NSO from the 4.0.1 update (your own keys), then
+`tools/re/disasm.sh main out/` produces the decompressed `main.bin` and an annotated disassembly (`main.ann.asm`, imports named); keep
+them out of the repository. `tools/re/` also has `xref.py`, `fstart.py`, `exefs.py`, `npdm2json.py`.
 Rule of thumb used throughout: find where the original code limits something to 4 and extend that same path to 8, instead of patching the
 symptom.
 

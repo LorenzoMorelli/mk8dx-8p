@@ -5,6 +5,7 @@ Read [PLAN.md](PLAN.md) (architecture) and [STRUCTS.md](STRUCTS.md) (reconstruct
 
 - **Language:** the maintainer works in Italian: answer in Italian. Code comments are in Italian; public docs (README, PLAN, STRUCTS,
   docs/) are in English.
+- **Machine-specific settings** (emulator path, GPU, console) go in `CLAUDE.local.md` (git-ignored).
 - **Notes:** development state and analysis reports (Italian) are in [docs/notes/](docs/notes/). Read `docs/notes/STATE.md`
   ("Prossima azione", "Problemi aperti") at the start of a session and update it at the end. `prompt.md` (repo root, git-ignored) is the
   hand-over prompt for the next session. Notes must not contain Nintendo material: no disassembly listings (single-instruction citations
@@ -64,5 +65,6 @@ EDEN_DIR=… scripts/deploy.sh && EDEN_DIR=… MK8D_GAME=… scripts/run-eden.sh
 - **Graphics:** RenderDoc can be loaded by `run-eden.sh` (`RENDERDOC=1`, default). Capture ONE frame with RenderDoc's own F12 key. Never use
   Eden's "Toggle Renderdoc Capture" hotkey (`renderdoc_hotkey`): a start/stop capture on Eden copies ~128 MB per frame and froze the PC.
 - **Reverse engineering:** offsets are into the decompressed main NSO of 4.0.1 (BID `158C0C7399AABD7BF83795C2EF3484C7`); IPS offset =
-  offset + 0x100. Disassemble with `llvm-objcopy -I binary -O elf64-littleaarch64 --rename-section=.data=.text,code` + `llvm-objdump -d
-  --triple=aarch64`. Mark every claim in analysis notes as [VERIFIED] (address, log, screenshot) or [HYPOTHESIS].
+  offset + 0x100. `tools/re/disasm.sh <main> <dir>` builds `main.bin` and the annotated `main.ann.asm` (PLT imports named); keep them
+  OUTSIDE the repo. `tools/re/`: `xref.py` (adrp/add references), `fstart.py` (function start), `exefs.py` (exefs from an NCA, own keys),
+  `npdm2json.py` (npdm -> config.json). Mark every claim in analysis notes as [VERIFIED] (address, log, screenshot) or [HYPOTHESIS].
