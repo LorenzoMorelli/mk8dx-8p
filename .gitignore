@@ -1,0 +1,14 @@
+# build outputs (exlaunch submodule is overlaid at build time)
+exlaunch/build/
+exlaunch/deploy/
+exlaunch/*.elf
+exlaunch/*.nso
+exlaunch/*.npdm
+exlaunch/*.map
+*.log
+dist/
+
+# session-only files
+prompt.md
+tools/debug/run/
+*.rdc

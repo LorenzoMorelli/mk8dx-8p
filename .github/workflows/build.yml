@@ -1,0 +1,45 @@
+name: build
+
+# Release build only (no debug logs, crash diagnostics on): same as `VARIANTS=release scripts/package.sh`.
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    container: devkitpro/devkita64:latest
+    steps:
+      - name: Checkout (with exlaunch submodule)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - name: Build and package (release)
+        shell: bash
+        run: |
+          command -v python3 >/dev/null || (apt-get update -qq && apt-get install -y -qq python3 >/dev/null)
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git config --global --add safe.directory "$GITHUB_WORKSPACE/exlaunch"
+          DKP_NATIVE=1 VARIANTS=release scripts/package.sh
+          echo "PKG=$(basename dist/mk8dx-8p-release-*[!p])" >> "$GITHUB_ENV"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.PKG }}
+          path: dist/${{ env.PKG }}/
+          if-no-files-found: error
+
+      - name: Attach to GitHub release (tags v*)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.zip
